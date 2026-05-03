@@ -2,7 +2,6 @@ package me.koala.optimising.listeners;
 
 import me.koala.optimising.KoalasOptimising;
 import me.koala.optimising.managers.EntityLimiterManager;
-import me.koala.optimising.managers.PacketOptManager;
 import org.bukkit.Chunk;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -11,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 public class EntityListener implements Listener {
 
@@ -23,22 +21,17 @@ public class EntityListener implements Listener {
         this.entityLimiterManager = entityLimiterManager;
     }
 
-    /**
-     * When a new entity spawns, immediately check if its chunk is over limit.
-     * This prevents accumulation rather than just periodic cleanup.
-     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         Entity entity = event.getEntity();
 
-        // Skip players and named entities
+        // Never touch players or NPCs of any kind
         if (entity instanceof Player) return;
-        if (entity instanceof LivingEntity le && le.getCustomName() != null) return;
+        if (isNPC(entity)) return;
 
         Chunk chunk = entity.getLocation().getChunk();
         Map<String, Integer> stats = entityLimiterManager.getChunkStats(chunk);
 
-        // Quick pre-check: cancel spawn if type is already over limit
         int maxItems = plugin.getConfig().getInt("entity-limiter.max-items-per-chunk", 20);
         int maxXP    = plugin.getConfig().getInt("entity-limiter.max-xp-per-chunk", 25);
         int maxMobs  = plugin.getConfig().getInt("entity-limiter.max-mobs-per-chunk", 15);
@@ -47,26 +40,39 @@ public class EntityListener implements Listener {
 
         boolean cancel = false;
 
-        if (entity instanceof Item && stats.getOrDefault("items", 0) >= maxItems) cancel = true;
-        else if (entity instanceof ExperienceOrb && stats.getOrDefault("xp", 0) >= maxXP) cancel = true;
-        else if (entity instanceof Projectile && stats.getOrDefault("projectiles", 0) >= maxProj) cancel = true;
-        else if (entity instanceof Mob && stats.getOrDefault("mobs", 0) >= maxMobs) cancel = true;
+        if      (entity instanceof Item          && stats.getOrDefault("items", 0)        >= maxItems) cancel = true;
+        else if (entity instanceof ExperienceOrb && stats.getOrDefault("xp", 0)           >= maxXP)   cancel = true;
+        else if (entity instanceof Projectile    && stats.getOrDefault("projectiles", 0)  >= maxProj)  cancel = true;
+        else if (entity instanceof Mob           && stats.getOrDefault("mobs", 0)         >= maxMobs)  cancel = true;
 
         int total = stats.values().stream().mapToInt(Integer::intValue).sum();
         if (total >= maxTotal) cancel = true;
 
-        if (cancel) {
-            event.setCancelled(true);
-        }
+        if (cancel) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onItemDrop(ItemSpawnEvent event) {
+        // Hook for future extension — MergeManager handles cleanup
     }
 
     /**
-     * Deduplicate rapid item merge events — don't spawn a new item stack
-     * if an identical one is right next to the drop location.
+     * Returns true if this entity is an NPC and should never be touched.
+     *
+     * Covers:
+     *  - Citizens 2 / Sentinel / any Citizens addon  → "NPC" metadata key
+     *  - Any entity with a custom name (renamed villagers, armour-stand NPCs, etc.)
+     *
+     * This means the limiter will NEVER cancel a Citizens NPC spawn or cull one
+     * during periodic chunk scans.
      */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onItemDrop(ItemSpawnEvent event) {
-        // This will be handled by MergeManager on the next cycle
-        // Nothing to cancel here — just a hook for future extension
+    private boolean isNPC(Entity entity) {
+        // Citizens 2 and its addons always set "NPC" metadata on the entity
+        if (entity.hasMetadata("NPC")) return true;
+
+        // Fallback: anything with a custom name is assumed to be intentional
+        if (entity instanceof LivingEntity le && le.getCustomName() != null) return true;
+
+        return false;
     }
 }
