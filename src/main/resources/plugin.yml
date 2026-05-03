@@ -1,0 +1,22 @@
+name: KoalasOptimising
+version: '${project.version}'
+main: me.koala.optimising.KoalasOptimising
+api-version: '1.21'
+description: Advanced server performance optimisation plugin for Minecraft 1.21.1
+author: Koala
+website: https://github.com/koala/KoalasOptimising
+
+commands:
+  kopt:
+    description: Main KoalasOptimising command
+    usage: /kopt <status|reload|mspt|entities|debug>
+    aliases: [koalaopt, koptimise]
+    permission: koalasopt.admin
+
+permissions:
+  koalasopt.admin:
+    description: Access to all KoalasOptimising commands
+    default: op
+  koalasopt.bypass:
+    description: Bypass entity limits and optimisations
+    default: op
