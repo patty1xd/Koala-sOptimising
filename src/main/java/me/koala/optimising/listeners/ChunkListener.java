@@ -18,30 +18,31 @@ public class ChunkListener implements Listener {
         this.chunkThrottleManager = chunkThrottleManager;
     }
 
-    /**
-     * When a NEW chunk is generated (not a pre-existing one being loaded),
-     * submit it through the throttle manager.
-     *
-     * Note: We cannot easily cancel chunk loads from players moving,
-     * but we can track and report on generation spikes.
-     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
         if (!event.isNewChunk()) return;
 
-        // New chunk generation — track it
         Chunk chunk = event.getChunk();
-        boolean debug = plugin.getConfig().getBoolean("debug.log-chunk-throttle", false);
 
-        if (debug) {
-            plugin.getLogger().info(String.format("[ChunkThrottle] New chunk generated at %d,%d (queue: %d)",
-                    chunk.getX(), chunk.getZ(), chunkThrottleManager.getQueueSize()));
+        // Report the new chunk and pass any post-generation work through the throttle.
+        // We can't cancel generation here (already done), but we CAN:
+        //  a) track the rate so the monitor knows how bad exploration is
+        //  b) defer any post-gen work (entity population, custom spawning, etc.)
+        boolean underBudget = chunkThrottleManager.onNewChunkGenerated(
+            chunk.getWorld(),
+            chunk.getX(),
+            chunk.getZ(),
+            null // no post-gen work needed currently — hook is here for future use
+        );
+
+        if (plugin.getConfig().getBoolean("debug.log-chunk-throttle", false)) {
+            plugin.getLogger().info(String.format(
+                "[ChunkThrottle] New chunk %d,%d | this tick: %d | queued: %d | %s",
+                chunk.getX(), chunk.getZ(),
+                chunkThrottleManager.getNewChunksThisTick(),
+                chunkThrottleManager.getQueueSize(),
+                underBudget ? "OK" : "THROTTLED"
+            ));
         }
-
-        // Submit any post-generation work to the throttle queue
-        chunkThrottleManager.submitChunkLoad(() -> {
-            // Post-chunk-generation work (e.g. custom spawning, decoration) goes here
-            // Currently a no-op hook for extension
-        });
     }
 }
