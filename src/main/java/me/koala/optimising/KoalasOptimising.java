@@ -5,7 +5,6 @@ import me.koala.optimising.listeners.EntityListener;
 import me.koala.optimising.listeners.MovementListener;
 import me.koala.optimising.listeners.ChunkListener;
 import me.koala.optimising.managers.*;
-import me.koala.optimising.tasks.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class KoalasOptimising extends JavaPlugin {
