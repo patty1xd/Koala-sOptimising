@@ -21,58 +21,68 @@ public class EntityListener implements Listener {
         this.entityLimiterManager = entityLimiterManager;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    /**
+     * Cap items, XP orbs and projectiles only.
+     * Mobs are handled by onCreatureSpawn — never touched here.
+     */
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         Entity entity = event.getEntity();
-
-        // Never touch players or NPCs of any kind
         if (entity instanceof Player) return;
-        if (isNPC(entity)) return;
+        if (entity instanceof LivingEntity) return; // mobs handled separately
 
         Chunk chunk = entity.getLocation().getChunk();
         Map<String, Integer> stats = entityLimiterManager.getChunkStats(chunk);
 
         int maxItems = plugin.getConfig().getInt("entity-limiter.max-items-per-chunk", 20);
         int maxXP    = plugin.getConfig().getInt("entity-limiter.max-xp-per-chunk", 25);
-        int maxMobs  = plugin.getConfig().getInt("entity-limiter.max-mobs-per-chunk", 15);
         int maxProj  = plugin.getConfig().getInt("entity-limiter.max-projectiles-per-chunk", 10);
-        int maxTotal = plugin.getConfig().getInt("entity-limiter.max-per-chunk", 30);
 
-        boolean cancel = false;
+        if      (entity instanceof Item          && stats.getOrDefault("items", 0)       >= maxItems) event.setCancelled(true);
+        else if (entity instanceof ExperienceOrb && stats.getOrDefault("xp", 0)          >= maxXP)   event.setCancelled(true);
+        else if (entity instanceof Projectile    && stats.getOrDefault("projectiles", 0) >= maxProj)  event.setCancelled(true);
+    }
 
-        if      (entity instanceof Item          && stats.getOrDefault("items", 0)        >= maxItems) cancel = true;
-        else if (entity instanceof ExperienceOrb && stats.getOrDefault("xp", 0)           >= maxXP)   cancel = true;
-        else if (entity instanceof Projectile    && stats.getOrDefault("projectiles", 0)  >= maxProj)  cancel = true;
-        else if (entity instanceof Mob           && stats.getOrDefault("mobs", 0)         >= maxMobs)  cancel = true;
+    /**
+     * Cap NATURAL mob spawns only.
+     *
+     * Citizens uses SpawnReason.CUSTOM. /summon uses COMMAND.
+     * Both are whitelisted — your NPCs will NEVER be blocked here.
+     * Only ambient/natural spawns are counted against the cap.
+     */
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        CreatureSpawnEvent.SpawnReason reason = event.getSpawnReason();
 
-        int total = stats.values().stream().mapToInt(Integer::intValue).sum();
-        if (total >= maxTotal) cancel = true;
+        switch (reason) {
+            case CUSTOM:
+            case COMMAND:
+            case SPAWNER_EGG:
+            case DISPENSE_EGG:
+            case BUILD_IRONGOLEM:
+            case BUILD_SNOWMAN:
+            case BUILD_WITHER:
+            case BREEDING:
+            case METAMORPHOSIS:
+                return; // always allow
+            default:
+                break;
+        }
 
-        if (cancel) event.setCancelled(true);
+        // Belt-and-suspenders: never block a Citizens NPC regardless of reason
+        if (event.getEntity().hasMetadata("NPC")) return;
+
+        Chunk chunk = event.getEntity().getLocation().getChunk();
+        Map<String, Integer> stats = entityLimiterManager.getChunkStats(chunk);
+
+        int maxMobs = plugin.getConfig().getInt("entity-limiter.max-mobs-per-chunk", 8);
+        if (stats.getOrDefault("mobs", 0) >= maxMobs) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onItemDrop(ItemSpawnEvent event) {
         // Hook for future extension — MergeManager handles cleanup
-    }
-
-    /**
-     * Returns true if this entity is an NPC and should never be touched.
-     *
-     * Covers:
-     *  - Citizens 2 / Sentinel / any Citizens addon  → "NPC" metadata key
-     *  - Any entity with a custom name (renamed villagers, armour-stand NPCs, etc.)
-     *
-     * This means the limiter will NEVER cancel a Citizens NPC spawn or cull one
-     * during periodic chunk scans.
-     */
-    private boolean isNPC(Entity entity) {
-        // Citizens 2 and its addons always set "NPC" metadata on the entity
-        if (entity.hasMetadata("NPC")) return true;
-
-        // Fallback: anything with a custom name is assumed to be intentional
-        if (entity instanceof LivingEntity le && le.getCustomName() != null) return true;
-
-        return false;
     }
 }
