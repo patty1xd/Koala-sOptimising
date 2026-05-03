@@ -68,6 +68,10 @@ public class EntityLimiterManager {
 
         for (Entity e : entities) {
             if (e instanceof Player) continue;
+            // Never cull NPCs — Citizens sets "NPC" metadata; skip anything with a custom name too
+            if (e.hasMetadata("NPC")) continue;
+            if (e instanceof LivingEntity le && le.getCustomName() != null) continue;
+
             if (e instanceof Item i) items.add(i);
             else if (e instanceof ExperienceOrb o) orbs.add(o);
             else if (e instanceof Projectile p) projectiles.add(p);
