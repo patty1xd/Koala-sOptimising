@@ -42,12 +42,12 @@ public class MSPTManager {
         if (!plugin.getConfig().getBoolean("mspt-monitor.enabled", true)) return;
 
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-            double[] tickTimes = plugin.getServer().getTickTimes();
+            long[] tickTimes = plugin.getServer().getTickTimes();
             if (tickTimes == null || tickTimes.length == 0) return;
 
             // Average last N nanosecond tick times → convert to ms
             double sum = 0;
-            for (double t : tickTimes) sum += t;
+            for (long t : tickTimes) sum += t;
             double mspt = (sum / tickTimes.length) / 1_000_000.0;
 
             currentMSPT = mspt;
