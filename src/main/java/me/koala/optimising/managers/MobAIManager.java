@@ -59,9 +59,11 @@ public class MobAIManager {
                 Collection<Entity> entities = world.getEntities();
                 for (Entity entity : entities) {
                     if (!(entity instanceof Mob mob)) continue;
+                    // Never touch Citizens NPCs or custom-named entities
+                    if (entity.hasMetadata("NPC")) continue;
+                    if (mob.getCustomName() != null) continue;
 
                     double nearestDist = nearestPlayerDistanceSq(mob.getLocation(), players);
-
                     applyAiPolicy(mob, nearestDist, level);
                 }
             }
