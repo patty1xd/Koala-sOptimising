@@ -65,12 +65,18 @@ mob-ai:
 # Chunk Load Throttle
 chunk-throttle:
   enabled: true
-  # Max chunks loaded per tick from exploration
-  max-chunks-per-tick: 2
-  # Queue size before chunks start getting delayed
-  queue-threshold: 10
-  # Ticks to delay overflow chunks
-  delay-ticks: 5
+  # Hard limit: new chunks generated per tick before queuing follow-up work
+  max-new-chunks-per-tick: 3
+  # How many queued chunk tasks to drain per tick (normal conditions)
+  normal-drain-rate: 4
+  # Drain rate under mild/severe lag
+  lag-drain-rate: 2
+  # Drain rate under critical lag
+  critical-drain-rate: 1
+  # Simulation distance to use normally (chunks around each player that are ticked)
+  normal-sim-distance: 6
+  # Simulation distance applied automatically under severe/critical lag
+  lag-sim-distance: 4
 
 # Tick Stability / Task Spreading
 tick-stability:
