@@ -47,9 +47,9 @@ public class MobAIManager {
     public void start() {
         if (!plugin.getConfig().getBoolean("mob-ai.enabled", true)) return;
 
-        // Run every tick to handle AI throttling via tick counting
+        // Run every 4 ticks - iterating all entities every single tick is itself a lag source
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-            tickCounter++;
+            tickCounter += 4;
             LagResponseManager.LagLevel level = lagResponseManager.getCurrentLevel();
 
             for (World world : plugin.getServer().getWorlds()) {
@@ -67,7 +67,7 @@ public class MobAIManager {
                     applyAiPolicy(mob, nearestDist, level);
                 }
             }
-        }, 1L, 1L);
+        }, 4L, 4L);
     }
 
     private void applyAiPolicy(Mob mob, double nearestDistSq, LagResponseManager.LagLevel level) {
