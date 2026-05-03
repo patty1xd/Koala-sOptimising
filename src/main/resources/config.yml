@@ -1,0 +1,111 @@
+# ============================================
+#        KoalasOptimising Configuration
+#          Minecraft 1.21.1 Performance
+# ============================================
+
+# MSPT Monitoring
+mspt-monitor:
+  enabled: true
+  # Sample interval in ticks (20 = 1 second)
+  sample-interval: 20
+  # Number of samples to average
+  sample-size: 100
+  # Thresholds in milliseconds
+  warning-threshold: 40.0   # ~15 TPS
+  critical-threshold: 50.0  # ~10 TPS
+
+# Dynamic Lag Response
+lag-response:
+  enabled: true
+  # MSPT thresholds that trigger responses
+  mild-threshold: 35.0
+  severe-threshold: 45.0
+  critical-threshold: 55.0
+  # How many consecutive bad samples before action
+  trigger-count: 3
+  # Cool-down ticks before re-evaluating
+  cooldown-ticks: 200
+
+# Entity Limiting per Chunk
+entity-limiter:
+  enabled: true
+  # Max entities per chunk (total)
+  max-per-chunk: 30
+  # Per-type limits
+  max-items-per-chunk: 20
+  max-xp-per-chunk: 25
+  max-mobs-per-chunk: 15
+  max-projectiles-per-chunk: 10
+  # Check interval in ticks
+  check-interval: 40
+
+# Smart Item & XP Merging
+item-merging:
+  enabled: true
+  # Radius in blocks for merging
+  item-merge-radius: 3.0
+  xp-merge-radius: 4.0
+  # Check interval in ticks
+  merge-interval: 20
+  # Only merge if items are older than X ticks
+  min-age-ticks: 20
+
+# Mob AI Reduction (dynamic, triggered by MSPT)
+mob-ai:
+  enabled: true
+  # Range beyond which mobs get reduced AI
+  full-ai-range: 24
+  reduced-ai-range: 48
+  # Tick interval for non-priority mobs (higher = less frequent AI updates)
+  reduced-ai-interval: 4
+  minimal-ai-interval: 10
+  # Reduce AI for mobs in unloaded/background chunks
+  reduce-background-mobs: true
+
+# Chunk Load Throttle
+chunk-throttle:
+  enabled: true
+  # Max chunks loaded per tick from exploration
+  max-chunks-per-tick: 2
+  # Queue size before chunks start getting delayed
+  queue-threshold: 10
+  # Ticks to delay overflow chunks
+  delay-ticks: 5
+
+# Tick Stability / Task Spreading
+tick-stability:
+  enabled: true
+  # Spread heavy tasks across this many ticks
+  task-spread-ticks: 5
+  # If MSPT exceeds this, defer non-critical tasks
+  defer-threshold: 35.0
+  # Non-critical task delay when spiking (ticks)
+  defer-delay: 40
+
+# Movement & Packet Optimisation
+packet-optimisation:
+  enabled: true
+  # Reduce position update frequency for distant players
+  distant-update-reduction: true
+  # Distance threshold (blocks) for reduced updates
+  distance-threshold: 32
+  # Minimum ticks between position packets for distant players
+  distant-update-interval: 3
+  # Deduplicate rapid hit events within X ms
+  hit-dedup-window-ms: 50
+
+# Redstone Reduction (triggered by lag)
+redstone:
+  enabled: true
+  # Only active when MSPT > critical threshold
+  reduce-on-critical: true
+  # Tick rate divisor during critical lag (updates every N ticks)
+  critical-update-divisor: 2
+
+# Debug / Logging
+debug:
+  enabled: false
+  log-entity-culls: false
+  log-chunk-throttle: false
+  log-lag-responses: true
+  log-merges: false
