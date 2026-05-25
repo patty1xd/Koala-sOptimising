@@ -22,25 +22,30 @@ public class EntityListener implements Listener {
     }
 
     /**
-     * Cap items, XP orbs and projectiles only.
+     * Cap items and projectiles only.
+     *
+     * XP orbs are NEVER cancelled here — XpCoalesceManager merges them at
+     * spawn time so they conserve experience instead of being deleted. The
+     * old behavior cancelled new XP orbs once a chunk hit max-xp-per-chunk,
+     * which silently lost XP from kills (the "random XP" bug).
+     *
      * Mobs are handled by onCreatureSpawn — never touched here.
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         Entity entity = event.getEntity();
         if (entity instanceof Player) return;
-        if (entity instanceof LivingEntity) return; // mobs handled separately
+        if (entity instanceof LivingEntity) return;     // mobs handled separately
+        if (entity instanceof ExperienceOrb) return;    // XP handled by XpCoalesceManager
 
         Chunk chunk = entity.getLocation().getChunk();
         Map<String, Integer> stats = entityLimiterManager.getChunkStats(chunk);
 
         int maxItems = plugin.getConfig().getInt("entity-limiter.max-items-per-chunk", 20);
-        int maxXP    = plugin.getConfig().getInt("entity-limiter.max-xp-per-chunk", 25);
         int maxProj  = plugin.getConfig().getInt("entity-limiter.max-projectiles-per-chunk", 10);
 
-        if      (entity instanceof Item          && stats.getOrDefault("items", 0)       >= maxItems) event.setCancelled(true);
-        else if (entity instanceof ExperienceOrb && stats.getOrDefault("xp", 0)          >= maxXP)   event.setCancelled(true);
-        else if (entity instanceof Projectile    && stats.getOrDefault("projectiles", 0) >= maxProj)  event.setCancelled(true);
+        if      (entity instanceof Item       && stats.getOrDefault("items",       0) >= maxItems) event.setCancelled(true);
+        else if (entity instanceof Projectile && stats.getOrDefault("projectiles", 0) >= maxProj)  event.setCancelled(true);
     }
 
     /**
@@ -75,7 +80,7 @@ public class EntityListener implements Listener {
         Chunk chunk = event.getEntity().getLocation().getChunk();
         Map<String, Integer> stats = entityLimiterManager.getChunkStats(chunk);
 
-        int maxMobs = plugin.getConfig().getInt("entity-limiter.max-mobs-per-chunk", 8);
+        int maxMobs = plugin.getConfig().getInt("entity-limiter.max-mobs-per-chunk", 15);
         if (stats.getOrDefault("mobs", 0) >= maxMobs) {
             event.setCancelled(true);
         }
