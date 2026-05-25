@@ -117,10 +117,12 @@ public class OptCommand implements CommandExecutor, TabCompleter {
         plugin.getMsptManager().reload();
         plugin.getLagResponseManager().reload();
         plugin.getEntityLimiterManager().reload();
+        plugin.getMobAIManager().reload();
         plugin.getMergeManager().reload();
         plugin.getChunkThrottleManager().reload();
         plugin.getPacketOptManager().reload();
         plugin.getTaskSpreadManager().reload();
+        plugin.getXpCoalesceManager().reload();
         sender.sendMessage(PREFIX + "§aConfiguration reloaded!");
     }
 
