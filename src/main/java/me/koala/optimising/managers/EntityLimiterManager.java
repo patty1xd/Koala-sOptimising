@@ -58,11 +58,13 @@ public class EntityLimiterManager {
 
     private void processChunk(Chunk chunk) {
         Entity[] entities = chunk.getEntities();
-        if (entities.length <= maxPerChunk) return;
+        // Per-type caps are independent — we enforce them even when the total
+        // is under maxPerChunk so a chunk full of one entity type (e.g. items
+        // from a dropped chest) still gets trimmed.
+        if (entities.length == 0) return;
 
         // Categorise
         List<Item> items = new ArrayList<>();
-        List<ExperienceOrb> orbs = new ArrayList<>();
         List<LivingEntity> mobs = new ArrayList<>();
         List<Projectile> projectiles = new ArrayList<>();
 
@@ -71,9 +73,12 @@ public class EntityLimiterManager {
             // Never cull NPCs — Citizens sets "NPC" metadata; skip anything with a custom name too
             if (e.hasMetadata("NPC")) continue;
             if (e instanceof LivingEntity le && le.getCustomName() != null) continue;
+            // XP orbs are NEVER culled — XpCoalesceManager merges them at spawn
+            // so they don't accumulate in the first place. Destroying orbs
+            // here silently lost XP from kills.
+            if (e instanceof ExperienceOrb) continue;
 
             if (e instanceof Item i) items.add(i);
-            else if (e instanceof ExperienceOrb o) orbs.add(o);
             else if (e instanceof Projectile p) projectiles.add(p);
             else if (e instanceof LivingEntity le) mobs.add(le);
         }
@@ -82,7 +87,6 @@ public class EntityLimiterManager {
 
         // Cull excess — oldest first (lowest entity ID = spawned earlier)
         totalCulled += cull(items, maxItems, "items", chunk, debug);
-        totalCulled += cull(orbs, maxXP, "xp orbs", chunk, debug);
         totalCulled += cull(projectiles, maxProjectiles, "projectiles", chunk, debug);
         totalCulled += cull(mobs, maxMobs, "mobs", chunk, debug);
     }

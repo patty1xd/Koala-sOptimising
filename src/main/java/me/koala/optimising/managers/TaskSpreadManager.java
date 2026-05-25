@@ -21,6 +21,7 @@ public class TaskSpreadManager {
     private int spreadTicks;
     private double deferThreshold;
     private int deferDelay;
+    private int drainBudget;
 
     private final Deque<NamedTask> queue = new ArrayDeque<>();
     private final AtomicLong tasksRun = new AtomicLong(0);
@@ -40,6 +41,7 @@ public class TaskSpreadManager {
         spreadTicks    = plugin.getConfig().getInt("tick-stability.task-spread-ticks", 5);
         deferThreshold = plugin.getConfig().getDouble("tick-stability.defer-threshold", 35.0);
         deferDelay     = plugin.getConfig().getInt("tick-stability.defer-delay", 40);
+        drainBudget    = Math.max(1, plugin.getConfig().getInt("tick-stability.drain-budget", 4));
     }
 
     public void start() {
@@ -57,15 +59,18 @@ public class TaskSpreadManager {
             // Only process tasks on spread boundary ticks
             if (tickCounter % spreadTicks != 0) return;
 
-            // Run one task per spread cycle
-            NamedTask namedTask = queue.poll();
-            if (namedTask == null) return;
-
-            try {
-                namedTask.task().run();
-                tasksRun.incrementAndGet();
-            } catch (Exception e) {
-                plugin.getLogger().warning("[TaskSpread] Task '" + namedTask.name() + "' threw: " + e.getMessage());
+            // Drain up to drainBudget tasks per spread cycle so a growing
+            // queue under sustained load actually clears instead of falling
+            // further behind one task at a time.
+            for (int i = 0; i < drainBudget; i++) {
+                NamedTask namedTask = queue.poll();
+                if (namedTask == null) return;
+                try {
+                    namedTask.task().run();
+                    tasksRun.incrementAndGet();
+                } catch (Exception e) {
+                    plugin.getLogger().warning("[TaskSpread] Task '" + namedTask.name() + "' threw: " + e.getMessage());
+                }
             }
 
         }, 1L, 1L);
