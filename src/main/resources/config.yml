@@ -50,6 +50,18 @@ item-merging:
   # Only merge if items are older than X ticks
   min-age-ticks: 20
 
+# XP Coalescing (consistent XP — never lose experience)
+# When a new XP orb spawns near an existing one, sum its xp into that orb
+# instead of letting many small orbs accumulate. Guarantees players get the
+# full XP from kills even when chunks are crowded.
+xp-coalesce:
+  enabled: true
+  # Radius in blocks to look for an existing orb to merge into
+  radius: 3.0
+  # Cap on a single orb's value so a grinder doesn't produce one giant
+  # orb that drains your level bar instantly when picked up
+  max-orb-value: 2000
+
 # Mob AI Reduction (dynamic, triggered by MSPT)
 mob-ai:
   enabled: true
@@ -87,6 +99,9 @@ tick-stability:
   defer-threshold: 35.0
   # Non-critical task delay when spiking (ticks)
   defer-delay: 40
+  # Maximum number of queued tasks to drain per spread cycle.
+  # Higher = queue clears faster but uses more CPU per cycle.
+  drain-budget: 4
 
 # Movement & Packet Optimisation
 packet-optimisation:
