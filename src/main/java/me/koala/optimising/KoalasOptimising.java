@@ -19,6 +19,7 @@ public class KoalasOptimising extends JavaPlugin {
     private LagResponseManager lagResponseManager;
     private PacketOptManager packetOptManager;
     private TaskSpreadManager taskSpreadManager;
+    private XpCoalesceManager xpCoalesceManager;
 
     @Override
     public void onEnable() {
@@ -36,6 +37,7 @@ public class KoalasOptimising extends JavaPlugin {
         chunkThrottleManager = new ChunkThrottleManager(this, lagResponseManager);
         packetOptManager = new PacketOptManager(this);
         taskSpreadManager = new TaskSpreadManager(this, msptManager);
+        xpCoalesceManager = new XpCoalesceManager(this);
 
         // Start all managers
         msptManager.start();
@@ -51,6 +53,7 @@ public class KoalasOptimising extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EntityListener(this, entityLimiterManager), this);
         getServer().getPluginManager().registerEvents(new MovementListener(this, packetOptManager), this);
         getServer().getPluginManager().registerEvents(new ChunkListener(this, chunkThrottleManager), this);
+        getServer().getPluginManager().registerEvents(xpCoalesceManager, this);
 
         // Commands
         getCommand("kopt").setExecutor(new OptCommand(this, msptManager, entityLimiterManager, lagResponseManager));
@@ -86,4 +89,5 @@ public class KoalasOptimising extends JavaPlugin {
     public LagResponseManager getLagResponseManager() { return lagResponseManager; }
     public PacketOptManager getPacketOptManager() { return packetOptManager; }
     public TaskSpreadManager getTaskSpreadManager() { return taskSpreadManager; }
+    public XpCoalesceManager getXpCoalesceManager() { return xpCoalesceManager; }
 }
